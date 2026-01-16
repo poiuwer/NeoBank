@@ -1,0 +1,123 @@
+:root {
+    --primary: #6C63FF;
+    --secondary: #2A2D3E;
+    --bg: #121212;
+    --card-bg: rgba(255, 255, 255, 0.05);
+    --text: #ffffff;
+    --accent: #00d2ff;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Inter', sans-serif; }
+
+body {
+    background-color: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    overflow-x: hidden;
+}
+
+/* Анимация фона */
+body::before {
+    content: '';
+    position: fixed;
+    top: -50%; left: -50%;
+    width: 200%; height: 200%;
+    background: radial-gradient(circle, rgba(108,99,255,0.15) 0%, rgba(18,18,18,0) 70%);
+    z-index: -1;
+    animation: pulse 10s infinite;
+}
+
+@keyframes pulse { 0% { transform: scale(1); } 50% { transform: scale(1.1); } 100% { transform: scale(1); } }
+
+/* Навигация */
+nav {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 20px 5%;
+    background: rgba(18, 18, 18, 0.8);
+    backdrop-filter: blur(10px);
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    border-bottom: 1px solid rgba(255,255,255,0.1);
+}
+
+.logo { font-size: 1.5rem; font-weight: 800; color: var(--accent); letter-spacing: 1px; }
+
+.menu-items button {
+    background: none;
+    border: none;
+    color: rgba(255,255,255,0.7);
+    margin-left: 20px;
+    cursor: pointer;
+    font-size: 1rem;
+    transition: 0.3s;
+}
+
+.menu-items button:hover, .menu-items button.active { color: var(--accent); text-shadow: 0 0 10px var(--accent); }
+
+/* Контейнер страниц */
+.container { padding: 40px 5%; max-width: 1200px; margin: 0 auto; flex: 1; }
+
+.page { display: none; animation: fadeIn 0.5s ease; }
+.page.active { display: block; }
+
+@keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+/* Карточки */
+.card {
+    background: var(--card-bg);
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 20px;
+    padding: 30px;
+    margin-bottom: 20px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+    backdrop-filter: blur(5px);
+}
+
+h1 { font-size: 2.5rem; margin-bottom: 20px; background: linear-gradient(45deg, #fff, #aaa); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+h2 { font-size: 1.5rem; margin-bottom: 15px; color: var(--accent); }
+
+.balance-display { font-size: 4rem; font-weight: 800; margin: 20px 0; letter-spacing: -2px; }
+.currency { font-size: 1.5rem; color: #888; vertical-align: super; }
+
+/* Элементы управления */
+input {
+    width: 100%;
+    padding: 15px;
+    margin: 10px 0;
+    background: rgba(0,0,0,0.3);
+    border: 1px solid rgba(255,255,255,0.2);
+    border-radius: 10px;
+    color: #fff;
+    outline: none;
+}
+
+button.btn-primary {
+    background: linear-gradient(90deg, var(--primary), var(--accent));
+    border: none;
+    padding: 15px 30px;
+    color: #fff;
+    border-radius: 10px;
+    cursor: pointer;
+    font-weight: 600;
+    transition: 0.3s;
+    width: 100%;
+    margin-top: 10px;
+}
+
+button.btn-primary:hover { transform: translateY(-2px); box-shadow: 0 5px 15px rgba(108,99,255,0.4); }
+
+/* Специфика банка */
+.bank-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; }
+
+.notification {
+    position: fixed; bottom: 20px; right: 20px;
+    background: var(--secondary); padding: 15px 25px;
+    border-radius: 10px; border-left: 4px solid var(--accent);
+    transform: translateX(150%); transition: 0.5s;
+}
+.notification.show { transform: translateX(0); }
