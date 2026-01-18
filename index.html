@@ -3,77 +3,129 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>NeoBank UAH — Твій цифровий гаманець</title>
-    
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
-    
+    <title>NeoBank | Premium</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&family=Courier+Prime&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
 
     <nav>
-        <div class="logo"><i class="fas fa-wallet"></i> NEOBANK</div>
+        <div class="logo"><i class="fas fa-cube"></i> NEOBANK</div>
         <div class="menu-items" id="navMenu" style="display: none;">
-            <button onclick="window.showPage('home')" class="active">Головна</button>
-            <button onclick="window.showPage('wallet')">Баланс</button>
+            <button onclick="window.showPage('home')" class="active"><i class="fas fa-home"></i></button>
+            <button onclick="window.showPage('wallet')">Гаманець</button>
             <button onclick="window.showPage('bank')">Сейф</button>
-            <button onclick="window.showPage('admin')"><i class="fas fa-user-shield"></i> Адмін</button>
-            <button onclick="window.logout()" style="color: #ff4757;">Вихід</button>
+            <button onclick="window.showPage('admin')"><i class="fas fa-shield-alt"></i></button>
+            <button onclick="window.logout()" style="color: var(--danger);"><i class="fas fa-sign-out-alt"></i></button>
         </div>
     </nav>
 
     <div class="container">
         
-        <div id="auth-section" class="card" style="max-width: 400px; margin: 50px auto;">
-            <h2 style="text-align: center; margin-bottom: 20px;">Вхід у систему</h2>
-            <input type="email" id="email" placeholder="Email">
-            <input type="password" id="password" placeholder="Пароль">
+        <div id="auth-section" class="card" style="max-width: 400px; margin: 40px auto;">
+            <h2 style="justify-content: center;">Вхід у систему</h2>
+            <p style="text-align: center; margin-bottom: 20px;">Твій фінансовий хаб</p>
+            <input type="email" id="email" placeholder="Email адреса">
+            <input type="password" id="password" placeholder="Ваш пароль">
             <button class="btn-primary" onclick="window.login()">Увійти</button>
-            <button class="btn-primary" onclick="window.register()" 
-                style="background: transparent; border: 1px solid var(--accent); margin-top: 10px;">
-                Реєстрація
+            <button class="btn-primary btn-secondary" onclick="window.register()" style="margin-top: 10px;">
+                Створити акаунт
             </button>
         </div>
 
         <div id="home" class="page">
-            <div class="card">
-                <h1>Майбутнє фінансів уже тут.</h1>
-                <p>Керуй своїми гривнями безпечно, швидко та з будь-якого пристрою.</p>
+            <div class="card" style="text-align: center; padding: 50px 30px;">
+                <div style="font-size: 3rem; color: var(--accent); margin-bottom: 20px;">
+                    <i class="fas fa-rocket"></i>
+                </div>
+                <h1>Ласкаво просимо в NeoBank</h1>
+                <p style="max-width: 600px; margin: 0 auto;">Керуй гривнею та Wollar (WLO). Використовуй безпечний сейф для зберігання заощаджень.</p>
+                <button class="btn-primary" onclick="window.showPage('wallet')" style="max-width: 200px; margin-top: 30px;">
+                    Мій Кабінет
+                </button>
             </div>
-            
         </div>
 
         <div id="wallet" class="page">
-            <div class="card" style="text-align: center;">
-                <h2>Поточний рахунок</h2>
-                <div class="balance-display"><span id="mainBalance">0</span> <span class="currency">₴</span></div>
-                <p style="color: #888;">Доступно для витрат та переказів</p>
+            <h3>Мої картки</h3>
+            
+            <div id="wallet" class="page">
+    <h3>Мої картки</h3>
+    
+    <div class="cards-scroll">
+        <div class="bank-card card-standard" style="background: linear-gradient(135deg, #6C63FF, #4834d4);">
+            <div class="card-logo">NEOBANK</div>
+            <div class="card-chip" style="width: 40px; height: 30px; background: #ffeaa7; border-radius: 5px;"></div>
+            <div class="card-number">**** **** **** 4129</div>
+            <div class="card-holder">MAIN ACCOUNT UAH</div>
+        </div>
+
+        <div class="bank-card card-premium" style="background: linear-gradient(135deg, #2d3436, #000000);">
+            <div class="card-logo">VIP</div>
+            <div class="card-chip" style="width: 40px; height: 30px; background: #ffeaa7; border-radius: 5px;"></div>
+            <div class="card-number">**** **** **** 8899</div>
+            <div class="card-holder">PREMIUM SAFE</div>
+        </div>
+
+        <div class="bank-card card-wlo" style="background: linear-gradient(135deg, #f39c12, #d35400);">
+            <div class="card-logo">WLO</div>
+            <div class="card-chip" style="width: 40px; height: 30px; background: #ffeaa7; border-radius: 5px;"></div>
+            <div class="card-number">WLO WALLET</div>
+            <div class="card-holder">CRYPTO ASSET</div>
+        </div>
+    </div>
+    
+    </div>
+
+            <div class="balance-grid" style="margin-top: 20px;">
+                <div class="balance-item">
+                    <p>Доступно</p>
+                    <div class="balance-display"><span id="mainBalance">0</span> <span class="currency">₴</span></div>
+                </div>
+                <div class="balance-item crypto">
+                    <p>Crypto</p>
+                    <div class="balance-display" style="color: var(--crypto);"><span id="wloBalance">0</span> <span class="currency">WLO</span></div>
+                </div>
             </div>
 
-            <div class="card" style="margin-top: 20px;">
-                <h2><i class="fas fa-paper-plane"></i> Переказ за Email</h2>
-                <p style="color: #888; margin-bottom: 15px;">Мттєвий переказ іншому клієнту NeoBank</p>
+            <div class="card">
+                <h2><i class="fas fa-paper-plane"></i> Переказ коштів</h2>
+                
+                <div class="custom-select-wrapper">
+                    <div class="custom-select">
+                        <div class="custom-select__trigger" id="transferCurrencyTrigger">
+                            <span>Українська гривня (UAH)</span>
+                            <div class="arrow"></div>
+                        </div>
+                        <div class="custom-options">
+                            <span class="custom-option selected" data-value="UAH">Українська гривня (UAH)</span>
+                            <span class="custom-option" data-value="WLO">Wollar Crypto (WLO)</span>
+                        </div>
+                    </div>
+                </div>
+                <input type="hidden" id="transferCurrency" value="UAH">
+
                 <input type="email" id="transferToEmail" placeholder="Email отримувача">
-                <input type="number" id="transferToAmount" placeholder="Сума (грн)">
-                <button class="btn-primary" onclick="window.sendMoneyToUser()">Надіслати гроші</button>
+                <input type="number" id="transferToAmount" placeholder="Сума">
+                
+                <button class="btn-primary" onclick="window.sendMoneyToUser()">Надіслати кошти</button>
             </div>
         </div>
 
         <div id="bank" class="page">
             <div class="card">
-                <h2><i class="fas fa-piggy-bank"></i> Мій Сейф</h2>
-                <p style="color: #888;">Тут твої гроші захищені від випадкових витрат</p>
-                <div class="balance-display" style="font-size: 3rem;">
+                <h2><i class="fas fa-piggy-bank"></i> Ощадний Сейф</h2>
+                <div class="balance-display" style="text-align: center; margin: 30px 0;">
+                    <i class="fas fa-lock" style="font-size: 1.5rem; color: var(--accent); opacity: 0.5;"></i><br>
                     <span id="bankBalance">0</span> <span class="currency">₴</span>
                 </div>
                 
-                <input type="number" id="transferAmount" placeholder="Сума для операції">
-                <div style="display: flex; gap: 10px; margin-top: 10px;">
-                    <button class="btn-primary" onclick="window.transferToBank()">У сейф</button>
-                    <button class="btn-primary" onclick="window.withdrawFromBank()" 
-                        style="background: #2A2D3E; border: 1px solid #fff;">
-                        Зняти
+                <input type="number" id="transferAmount" placeholder="Введіть суму">
+                <div class="btn-group">
+                    <button class="btn-primary" onclick="window.transferToBank()">Покласти в сейф</button>
+                    <button class="btn-primary btn-secondary" onclick="window.withdrawFromBank()">
+                        Зняти на карту
                     </button>
                 </div>
             </div>
@@ -81,24 +133,40 @@
 
         <div id="admin" class="page">
             <div class="card">
-                <h2><i class="fas fa-terminal"></i> Панель Адміністратора</h2>
+                <h2><i class="fas fa-terminal"></i> Панель керування</h2>
                 
                 <div id="adminLogin">
-                    <p style="margin-bottom: 15px; color: #ff4757;">Введіть секретний код доступу</p>
-                    <input type="password" id="adminCodeInput" placeholder="Код доступу">
-                    <button class="btn-primary" onclick="window.verifyAdmin()">Підтвердити</button>
+                    <input type="password" id="adminCodeInput" placeholder="Секретний код">
+                    <button class="btn-primary" onclick="window.verifyAdmin()">Авторизація</button>
                 </div>
 
-                <div id="adminControls" style="display: none; margin-top: 20px; border-top: 1px solid #444; padding-top: 20px;">
-                    <h3>Коригування рахунків</h3>
+                <div id="adminControls" style="display: none; margin-top: 20px;">
+                    <h3>Менеджмент активів</h3>
+                    
+                    <div class="custom-select-wrapper">
+                        <div class="custom-select">
+                            <div class="custom-select__trigger" id="adminCurrencyTrigger">
+                                <span>Баланс UAH</span>
+                                <div class="arrow"></div>
+                            </div>
+                            <div class="custom-options">
+                                <span class="custom-option selected" data-value="balance">Баланс UAH</span>
+                                <span class="custom-option" data-value="bank">Сейф (Piggy Bank)</span>
+                                <span class="custom-option" data-value="wlo">Crypto WLO</span>
+                            </div>
+                        </div>
+                    </div>
+                    <input type="hidden" id="adminCurrency" value="balance">
+
                     <input type="text" id="targetUserEmail" placeholder="Email користувача">
-                    <input type="number" id="adminAmount" placeholder="Сума (грн)">
-                    <div style="display: flex; gap: 10px;">
-                        <button class="btn-primary" onclick="window.adminAddMoney()" style="background: #00b894;">
-                            + Нарахувати
+                    <input type="number" id="adminAmount" placeholder="Сума операції">
+                    
+                    <div class="btn-group">
+                        <button class="btn-primary btn-success" onclick="window.adminAddMoney()">
+                            <i class="fas fa-plus"></i> Нарахувати
                         </button>
-                        <button class="btn-primary" onclick="window.adminRemoveMoney()" style="background: #d63031;">
-                            - Списати
+                        <button class="btn-primary btn-danger" onclick="window.adminRemoveMoney()">
+                            <i class="fas fa-minus"></i> Списати
                         </button>
                     </div>
                 </div>
