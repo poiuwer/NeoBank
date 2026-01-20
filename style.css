@@ -56,7 +56,6 @@ nav {
     gap: 10px; 
 }
 
-.logo i { color: var(--primary); }
 
 .menu-items { display: flex; gap: 15px; }
 
@@ -229,25 +228,23 @@ input:focus { border-color: var(--primary); background: rgba(0,0,0,0.4); }
 .open .arrow::before { left: -3px; transform: rotate(-45deg); }
 .open .arrow::after { left: 3px; transform: rotate(45deg); }
 
-/* --- ОБНОВЛЕННЫЕ СТИЛИ ДЛЯ КАРТ --- */
-/* Контейнер для прокрутки карт */
 .cards-scroll {
     display: flex;
     gap: 25px;
     overflow-x: auto;
-    /* Увеличиваем padding, чтобы тени и анимация (hover) не обрезались */
+ 
     padding: 20px 20px 40px 20px; 
-    /* Отрицательный margin позволяет скроллу визуально доходить до краев экрана */
+
     margin: 0 -20px;
-    scrollbar-width: none; /* Скрываем стандартный скролл в Firefox */
-    -ms-overflow-style: none; /* Скрываем скролл в IE/Edge */
+    scrollbar-width: none; 
+    -ms-overflow-style: none; 
 }
 
 .cards-scroll::-webkit-scrollbar {
-    display: none; /* Скрываем скролл в Chrome/Safari */
+    display: none; 
 }
 
-/* Стили самой карточки */
+
 .bank-card {
     min-width: 300px;
     height: 180px;
@@ -260,7 +257,7 @@ input:focus { border-color: var(--primary); background: rgba(0,0,0,0.4); }
     color: #fff;
     box-shadow: 0 10px 25px rgba(0,0,0,0.4);
     transition: all 0.3s ease;
-    /* flex-shrink: 0 критически важен, чтобы карты не сжимались */
+
     flex-shrink: 0; 
 }
 

@@ -43,6 +43,7 @@ function setupCustomSelects() {
                 option.classList.add('selected');
                 trigger.querySelector('span').textContent = option.textContent;
                 input.value = option.getAttribute('data-value');
+                console.log("Selected currency:", input.value); // Для налагодження
             });
         });
 
@@ -83,6 +84,7 @@ window.register = async () => {
     const p = document.getElementById('password').value;
     try {
         const cred = await createUserWithEmailAndPassword(auth, e, p);
+        // Створюємо поля: balance (UAH), bank (Сейф), wlo (Крипта)
         await setDoc(doc(db, "users", cred.user.uid), {
             email: e, balance: 0, bank: 0, wlo: 0
         });
@@ -134,15 +136,18 @@ onAuthStateChanged(auth, async (user) => {
     }
 });
 
+// --- ВИПРАВЛЕНИЙ ПЕРЕКАЗ КОШТІВ (UAH або WLO) ---
 window.sendMoneyToUser = async () => {
     const targetEmail = document.getElementById('transferToEmail').value.trim();
     const amount = Number(document.getElementById('transferToAmount').value);
-    const currency = document.getElementById('transferCurrency').value;
+    const currency = document.getElementById('transferCurrency').value; // Отримуємо 'UAH' або 'WLO'
 
     if (!targetEmail || amount <= 0) return showNotify("Заповніть всі поля", 'error');
     if (targetEmail === currentUser.email) return showNotify("Переказ собі неможливий", 'error');
 
-    const fieldName = currency === 'UAH' ? 'balance' : 'wlo';
+    // ВИПРАВЛЕННЯ: Якщо WLO, то поле 'wlo', інакше 'balance'
+    const fieldName = (currency === 'WLO') ? 'wlo' : 'balance';
+    const currencyLabel = (currency === 'WLO') ? 'WLO' : '₴';
 
     try {
         const uid = await getUserIdByEmail(targetEmail);
@@ -154,13 +159,13 @@ window.sendMoneyToUser = async () => {
             const senderSnap = await transaction.get(senderRef);
             
             const currentBal = senderSnap.data()[fieldName] || 0;
-            if (currentBal < amount) throw "Недостатньо коштів на рахунку";
+            if (currentBal < amount) throw `Недостатньо ${currencyLabel} на рахунку`;
 
             transaction.update(senderRef, { [fieldName]: increment(-amount) });
             transaction.update(receiverRef, { [fieldName]: increment(amount) });
         });
 
-        showNotify(`Успішно надіслано ${amount} ${currency}`);
+        showNotify(`Успішно надіслано ${amount} ${currencyLabel}`);
         document.getElementById('transferToEmail').value = "";
         document.getElementById('transferToAmount').value = "";
     } catch (err) {
@@ -191,7 +196,9 @@ window.withdrawFromBank = async () => {
 window.verifyAdmin = async () => {
     const code = document.getElementById('adminCodeInput').value;
     const snap = await getDoc(doc(db, "settings", "admin_config"));
-    if (snap.exists() && snap.data().code === code) {
+    
+    // Перевірка коду (якщо в базі немає налаштувань, пускає з кодом '0000')
+    if ((snap.exists() && snap.data().code === code) || (!snap.exists() && code === '0000')) {
         document.getElementById('adminLogin').style.display = 'none';
         document.getElementById('adminControls').style.display = 'block';
     } else { showNotify("Доступ заборонено", 'error'); }
@@ -203,26 +210,127 @@ async function getUserIdByEmail(email) {
     return snap.empty ? null : snap.docs[0].id;
 }
 
+// --- ВИПРАВЛЕНА АДМІНКА (НАРАХУВАННЯ) ---
 window.adminAddMoney = async () => {
-    const email = document.getElementById('targetUserEmail').value;
+    const email = document.getElementById('targetUserEmail').value.trim();
     const amount = Number(document.getElementById('adminAmount').value);
-    const targetField = document.getElementById('adminCurrency').value;
+    // Получаем значение из скрытого инпута (теперь там точно будет UAH или WLO)
+    const selectedValue = document.getElementById('adminCurrency').value; 
+
+    if (!email || amount <= 0) return showNotify("Заповніть всі поля", 'error');
 
     const uid = await getUserIdByEmail(email);
-    if(uid) {
-        await updateDoc(doc(db, "users", uid), { [targetField]: increment(amount) });
-        showNotify(`Додано ${amount} на ${targetField}`);
-    } else { showNotify("Користувача не знайдено", 'error'); }
+    if (!uid) return showNotify("Користувача не знайдено", 'error');
+    
+    try {
+        // Если выбрано WLO (крипта)
+        if (selectedValue === 'WLO'){
+            await updateDoc(doc(db, "users", uid), { wlo: increment(amount) });
+            showNotify(`Нараховано ${amount} на WLO`);
+        }
+        // Если выбрано UAH (гривна)
+        else if (selectedValue === 'UAH'){ 
+            // Поле в базе данных называется 'balance', но value в селекте 'UAH'
+            await updateDoc(doc(db, "users", uid), { balance: increment(amount) });
+            showNotify(`Нараховано ${amount} на UAH`);
+        } else {
+            // На случай, если что-то пошло не так
+            showNotify("Помилка валюти: " + selectedValue, 'error');
+        }
+        
+    } catch (err) { 
+        console.error(err);
+        showNotify("Помилка при нарахуванні", 'error'); 
+    }
 };
 
+// --- ВИПРАВЛЕНА АДМІНКА (СПИСАННЯ) ---
 window.adminRemoveMoney = async () => {
-    const email = document.getElementById('targetUserEmail').value;
-    const amount = Number(document.getElementById('adminAmount').value);
-    const targetField = document.getElementById('adminCurrency').value;
+    const email = document.getElementById('targetUserEmail').value.trim();
+    const amountToRemove = Number(document.getElementById('adminAmount').value);
+    const selectedCurrency = document.getElementById('adminCurrency').value;
+
+    if (!email || amountToRemove <= 0) return showNotify("Заповніть всі поля", 'error');
 
     const uid = await getUserIdByEmail(email);
-    if(uid) {
-        await updateDoc(doc(db, "users", uid), { [targetField]: increment(-amount) });
-        showNotify(`Списано ${amount} з ${targetField}`);
-    } else { showNotify("Користувача не знайдено", 'error'); }
+    if (!uid) return showNotify("Користувача не знайдено", 'error');
+
+    try {
+        await runTransaction(db, async (transaction) => {
+            const userRef = doc(db, "users", uid);
+            const userSnap = await transaction.get(userRef);
+            if (!userSnap.exists()) throw "Користувач не існує";
+
+            const data = userSnap.data();
+
+            // Проверка строго на 'WLO' (так как мы исправили HTML на WLO большими)
+            if (selectedCurrency === 'WLO') {
+                const currentWlo = data.wlo || 0;
+                if (currentWlo < amountToRemove) throw "Недостатньо WLO у користувача";
+                transaction.update(userRef, { wlo: increment(-amountToRemove) });
+            } 
+            // Если не WLO, значит это UAH
+            else if (selectedCurrency === 'UAH') {
+                let remaining = amountToRemove;
+                let newBalance = data.balance || 0;
+                let newBank = data.bank || 0;
+
+                // Списываем сначала с основного баланса
+                if (newBalance >= remaining) {
+                    newBalance -= remaining;
+                    remaining = 0;
+                } else {
+                    remaining -= newBalance;
+                    newBalance = 0;
+                }
+                
+                // Если не хватило, списываем с сейфа
+                if (remaining > 0) {
+                     newBank -= remaining; 
+                }
+
+                transaction.update(userRef, { 
+                    balance: newBalance, 
+                    bank: newBank 
+                });
+            }
+        });
+        showNotify(`Успішно списано ${amountToRemove} ${selectedCurrency}`);
+    } catch (err) {
+        showNotify("Помилка списання: " + (typeof err === 'string' ? err : err.message), 'error');
+    }
+};
+// --- ФУНКЦІЯ ОБМІНУ (UAH -> WLO) ---
+window.exchangeToWlo = async () => {
+    const amountUAH = Number(document.getElementById('exchangeAmount').value);
+    
+    if (amountUAH <= 0) return showNotify("Введіть суму більше 0", 'error');
+
+    const rate = 10; // 1 UAH = 10 WLO
+    const amountWLO = amountUAH * rate;
+
+    try {
+        await runTransaction(db, async (transaction) => {
+            const userRef = doc(db, "users", currentUser.uid);
+            const userSnap = await transaction.get(userRef);
+            
+            if (!userSnap.exists()) throw "Помилка облікового запису";
+            
+            const currentUAH = userSnap.data().balance || 0;
+
+            if (currentUAH < amountUAH) {
+                throw "Недостатньо гривень для обміну";
+            }
+
+            transaction.update(userRef, { 
+                balance: increment(-amountUAH),
+                wlo: increment(amountWLO)
+            });
+        });
+
+        showNotify(`Обміняно ${amountUAH}₴ на ${amountWLO} WLO`);
+        document.getElementById('exchangeAmount').value = "";
+    } catch (err) {
+        showNotify(typeof err === 'string' ? err : err.message, 'error');
+    }
 };
