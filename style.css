@@ -688,3 +688,116 @@ input:checked + .slider:before { transform: translateX(24px); }
     .balance-display { font-size: 1.8rem; }
     .user-welcome { display: none !important; } /* Скрыть имя в навбаре на мобильных */
 }
+
+/* THEMES */
+body.theme-admin {
+    --primary: #ff4757;
+    --accent: #ff6b81;
+    --secondary: #2f3542;
+    background: linear-gradient(135deg, #1e0f0f, #2c0b0b, #1a0a0a);
+}
+
+body.theme-moderator {
+    --primary: #e67e22;
+    --accent: #f39c12;
+    --secondary: #2c2518;
+    background: linear-gradient(135deg, #1e160a, #2c1e0b, #1a1205);
+}
+
+body.theme-admin .logo-fill, body.theme-moderator .logo-fill {
+    fill: var(--primary);
+}
+
+/* Home Page Widgets */
+.welcome-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 25px;
+}
+
+.widgets-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 15px;
+    margin-bottom: 25px;
+}
+
+@media (max-width: 600px) {
+    .widgets-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+.widget-card {
+    padding: 20px;
+    margin-bottom: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    transition: transform 0.2s;
+}
+
+.widget-card:hover {
+    transform: translateY(-5px);
+    background: rgba(255,255,255,0.06);
+}
+
+.widget-icon {
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.2rem;
+    margin-bottom: 10px;
+}
+
+.promo-banner {
+    background: linear-gradient(135deg, #2A2D3E, #1f1f2e);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    overflow: hidden;
+}
+
+.bg-icon {
+    font-size: 5rem;
+    opacity: 0.1;
+    transform: rotate(15deg);
+    position: absolute;
+    right: -10px;
+    bottom: -10px;
+}
+
+.role-badge {
+    padding: 5px 10px;
+    border-radius: 12px;
+    font-size: 0.75rem;
+    font-weight: 800;
+    letter-spacing: 1px;
+    background: var(--primary);
+    color: #fff;
+    box-shadow: 0 0 10px var(--primary);
+    text-transform: uppercase;
+}
+
+.fake-input {
+    width: 100%;
+    padding: 16px;
+    margin: 8px 0 16px;
+    background: rgba(0, 0, 0, 0.2);
+    border: 1px solid var(--glass-border);
+    border-radius: 12px;
+    color: var(--text-muted);
+    display: flex;
+    align-items: center;
+}
+
+.exchange-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}

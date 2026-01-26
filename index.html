@@ -4,9 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>NeoBank | WL</title>
-    
     <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'%3E%3Cpath fill='%236C63FF' d='M239.1 6.3l-208 78c-18.7 7-31.1 25-31.1 45v225.1c0 18.2 10.3 34.8 26.5 42.9l208 104c13.5 6.8 29.4 6.8 42.9 0l208-104c16.3-8.1 26.5-24.8 26.5-42.9V129.3c0-20-12.4-38-31.1-45l-208-78c-13.5-5.1-28.5-5.1-42 0zM256 33.7l176 66-176 66-176-66 176-66zm0 158.5l176-66v188.2l-176 88v-210.2zm-32 0v210.2l-176-88V126.2l176 66z'/%3E%3C/svg%3E">
-
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&family=Courier+Prime&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="style.css">
@@ -16,7 +14,7 @@
     <nav>
         <div class="logo">
             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="28" height="28">
-                <path fill="#6C63FF" d="M239.1 6.3l-208 78c-18.7 7-31.1 25-31.1 45v225.1c0 18.2 10.3 34.8 26.5 42.9l208 104c13.5 6.8 29.4 6.8 42.9 0l208-104c16.3-8.1 26.5-24.8 26.5-42.9V129.3c0-20-12.4-38-31.1-45l-208-78c-13.5-5.1-28.5-5.1-42 0zM256 33.7l176 66-176 66-176-66 176-66zm0 158.5l176-66v188.2l-176 88v-210.2zm-32 0v210.2l-176-88V126.2l176 66z"/>
+                <path class="logo-fill" fill="#6C63FF" d="M239.1 6.3l-208 78c-18.7 7-31.1 25-31.1 45v225.1c0 18.2 10.3 34.8 26.5 42.9l208 104c13.5 6.8 29.4 6.8 42.9 0l208-104c16.3-8.1 26.5-24.8 26.5-42.9V129.3c0-20-12.4-38-31.1-45l-208-78c-13.5-5.1-28.5-5.1-42 0zM256 33.7l176 66-176 66-176-66 176-66zm0 158.5l176-66v188.2l-176 88v-210.2zm-32 0v210.2l-176-88V126.2l176 66z"/>
             </svg>
             <span class="logo-text">NEOBANK WL</span>
         </div>
@@ -41,12 +39,9 @@
             </div>
             <h2>Вхід у NeoBank</h2>
             <p>Керуйте своїми активами безпечно</p>
-            
             <button class="btn-google" onclick="window.loginWithGoogle()">
                 <i class="fab fa-google"></i> Продовжити з Google
             </button>
-
-
         </div>
 
         <div id="setup-section" class="card" style="display: none; max-width: 450px; margin: 80px auto; text-align: center; border: 2px solid var(--accent);">
@@ -54,36 +49,53 @@
                 <i class="fas fa-id-card"></i>
             </div>
             <h2>Створіть NeoTag</h2>
-            <p>Придумайте унікальний нікнейм для отримання переказів. Змінити його буде неможливо.</p>
-            
+            <p>Придумайте унікальний нікнейм для отримання переказів.</p>
             <input type="text" id="setupName" placeholder="Як вас звати? (Ім'я)">
-            
             <div class="input-group-text">
                 <span>@</span>
                 <input type="text" id="setupCode" placeholder="myname2024" style="margin: 0;">
             </div>
-            <p style="font-size: 0.8rem; color: var(--text-muted); margin-top: 5px;">Тільки латинські літери та цифри</p>
-
             <button class="btn-primary" style="margin-top: 20px;" onclick="window.saveUserTag()">Зберегти та увійти</button>
         </div>
 
         <div id="home" class="page">
-            <div class="card" style="text-align: center; padding: 50px 30px;">
-                <div style="font-size: 3rem; color: var(--accent); margin-bottom: 20px;">
-                    <i class="fas fa-rocket"></i>
+            <div class="welcome-header">
+                <div>
+                    <h1>Привіт, <span id="homeUserName">...</span>!</h1>
+                    <p>Раді бачити тебе знову.</p>
                 </div>
-                <h1>Привіт, <span id="homeUserName">...</span>!</h1>
-                <p>Твій баланс під контролем. Використовуй NeoTag для швидких операцій.</p>
-                <div class="btn-group" style="max-width: 300px; margin: 30px auto;">
-                    <button class="btn-primary" onclick="window.showPage('wallet')">Гаманець</button>
-                    <button class="btn-primary btn-secondary" onclick="window.showPage('bank')">Сейф</button>
+                <div class="role-badge" id="roleBadgeDisplay" style="display:none;">USER</div>
+            </div>
+
+            <div class="widgets-grid">
+                <div class="card widget-card">
+                    <div class="widget-icon" style="background: rgba(108, 99, 255, 0.2); color: #6C63FF;"><i class="fas fa-wallet"></i></div>
+                    <h3>Баланс</h3>
+                    <p style="font-size: 1.2rem; font-weight: bold;"><span id="homeMainBalance">0</span> ₴</p>
                 </div>
+                <div class="card widget-card" onclick="window.showPage('bank')" style="cursor: pointer;">
+                    <div class="widget-icon" style="background: rgba(0, 210, 255, 0.2); color: #00d2ff;"><i class="fas fa-piggy-bank"></i></div>
+                    <h3>Сейф</h3>
+                    <p>Накопичення</p>
+                </div>
+                <div class="card widget-card" onclick="window.showPage('wallet')" style="cursor: pointer;">
+                    <div class="widget-icon" style="background: rgba(243, 156, 18, 0.2); color: #f39c12;"><i class="fas fa-exchange-alt"></i></div>
+                    <h3>Переказ</h3>
+                    <p>Надіслати кошти</p>
+                </div>
+            </div>
+
+            <div class="card promo-banner">
+                <div style="z-index: 2;">
+                    <h2><i class="fas fa-star"></i> Neo Premium</h2>
+                    <p>Використовуйте Wollar для крипто-операцій.</p>
+                </div>
+                <i class="fas fa-cube bg-icon"></i>
             </div>
         </div>
 
         <div id="wallet" class="page">
             <h3>Мої фінанси</h3>
-            
             <div class="balance-grid">
                 <div class="balance-item">
                     <p>Основний рахунок</p>
@@ -97,7 +109,6 @@
 
             <div class="card">
                 <h2><i class="fas fa-paper-plane"></i> Переказ за тегом</h2>
-                
                 <div class="custom-select-wrapper">
                     <div class="custom-select">
                         <div class="custom-select__trigger" id="transferCurrencyTrigger">
@@ -111,13 +122,11 @@
                     </div>
                     <input type="hidden" id="transferCurrency" value="UAH">
                 </div>
-                
                 <div class="input-group-text">
                     <span>@</span>
-                    <input type="text" id="transferToCode" placeholder="Тег отримувача (напр. levko)" style="margin: 0;">
+                    <input type="text" id="transferToCode" placeholder="Тег отримувача" style="margin: 0;">
                 </div>
                 <input type="number" id="transferToAmount" placeholder="Сума переказу">
-                
                 <button class="btn-primary" onclick="window.sendMoneyToUser()">Надіслати</button>
             </div>
 
@@ -147,8 +156,7 @@
                     <div class="balance-display"><span id="bankBalance">0</span> <span class="currency">₴</span></div>
                     <p>Накопичення</p>
                 </div>
-                
-                <input type="number" id="transferAmount" placeholder="Введіть суму">
+                <input type="number" id="transferBankAmount" placeholder="Введіть суму">
                 <div class="btn-group">
                     <button class="btn-primary" onclick="window.transferToBank()">Покласти</button>
                     <button class="btn-primary btn-secondary" onclick="window.withdrawFromBank()">Зняти</button>
@@ -158,82 +166,91 @@
 
         <div id="profile" class="page">
             <div class="card profile-header">
-                <div class="profile-avatar"><i class="fas fa-user"></i></div>
+                <div class="profile-avatar" id="profileAvatarIcon"><i class="fas fa-user"></i></div>
                 <h2 id="profileNameDisplay">...</h2>
+                <div class="role-badge" id="profileRoleBadge" style="display:none; margin-top: 5px;">USER</div>
                 
                 <div class="neo-tag-display" onclick="window.copyTag()">
                     <span style="opacity: 0.5; margin-right: 2px;">@</span><span id="profileCodeDisplay">...</span>
                     <i class="fas fa-copy" style="margin-left: 10px; font-size: 0.8rem;"></i>
                 </div>
-                <p style="font-size: 0.9rem; margin-top: 10px;">Натисніть на тег, щоб скопіювати</p>
+            </div>
+
+            <div class="card" id="staffPanelButtonCard" style="display: none;">
+                <h2><i class="fas fa-shield-alt"></i> Панель персоналу</h2>
+                <p>Інструменти управління</p>
+                <button class="btn-primary btn-secondary" onclick="window.showPage('staff')">Відкрити</button>
             </div>
 
             <div class="card">
-                <h2><i class="fas fa-shield-alt"></i> Адмін-панель</h2>
-                <p>Доступ лише для персоналу</p>
-                <button class="btn-primary btn-secondary" onclick="window.showPage('admin')">Відкрити</button>
+                <h2><i class="fas fa-terminal"></i> Консоль доступу</h2>
+                <p style="font-size: 0.8rem; margin-bottom: 10px;">Введіть ключ для зміни статусу акаунту</p>
+                <div class="input-group-text">
+                    <span>>_</span>
+                    <input type="password" id="accessKeyInput" placeholder="Access Key" style="margin: 0;">
+                </div>
+                <button class="btn-primary" onclick="window.activateRole()">Активувати</button>
             </div>
         </div>
 
         <div id="settings" class="page">
             <div class="card">
                 <h2><i class="fas fa-cog"></i> Налаштування</h2>
-                
                 <div style="margin-bottom: 20px;">
                     <label style="display: block; margin-bottom: 5px; color: var(--text-muted);">Змінити ім'я</label>
                     <input type="text" id="settingsName" placeholder="Нове ім'я">
                 </div>
-
-                <div class="setting-item">
-                    <div class="setting-info">
-                        <h4>Сповіщення</h4>
-                        <p>Повідомляти про вхід</p>
-                    </div>
-                    <label class="switch">
-                        <input type="checkbox" checked>
-                        <span class="slider round"></span>
-                    </label>
-                </div>
-
                 <button class="btn-primary" onclick="window.saveSettings()">Зберегти зміни</button>
             </div>
         </div>
 
-        <div id="admin" class="page">
+        <div id="staff" class="page">
             <div class="card">
-                <h2><i class="fas fa-terminal"></i> Адміністратор</h2>
-                <div id="adminLogin">
-                    <input type="password" id="adminCodeInput" placeholder="Код доступу">
-                    <button class="btn-primary" onclick="window.verifyAdmin()">Увійти</button>
+                <h2><i class="fas fa-user-shield"></i> Управління</h2>
+                
+                <div class="input-group-text">
+                    <span>@</span>
+                    <input type="text" id="staffTargetCode" placeholder="Тег користувача (напр. levko)" style="margin: 0;">
                 </div>
+                <button class="btn-primary" onclick="window.staffSearchUser()">Знайти користувача</button>
 
-                <div id="adminControls" style="display: none; margin-top: 20px;">
-                    <h3>Управління балансом</h3>
-                    
-                    <div class="custom-select-wrapper">
-                        <div class="custom-select">
-                            <div class="custom-select__trigger" id="adminCurrencyTrigger">
-                                <span>Українська гривня (UAH)</span>
-                                <div class="arrow"></div>
-                            </div>
-                            <div class="custom-options">
-                                <span class="custom-option selected" data-value="UAH">Українська гривня (UAH)</span>
-                                <span class="custom-option" data-value="WLO">Crypto Wollar (WLO)</span>
-                            </div>
+                <div id="staffUserInfo" style="display: none; margin-top: 20px; border-top: 1px solid var(--glass-border); padding-top: 20px;">
+                    <h3 id="staffTargetName">User Name</h3>
+                    <p style="font-size: 0.9rem; opacity: 0.7;">Balance: <span id="staffTargetBalance">0</span> ₴</p>
+                    <p style="font-size: 0.9rem; opacity: 0.7;">Status: <span id="staffTargetStatus">Active</span></p>
+
+                    <div id="adminControlsOnly" style="display: none; margin-top: 15px;">
+                        <div class="btn-group">
+                            <button class="btn-primary btn-danger" onclick="window.adminToggleFreeze()">БЛОКУВАННЯ (Freeze)</button>
+                            <button class="btn-primary btn-secondary" onclick="window.adminToggleTransferBlock()">Блок переказів</button>
                         </div>
-                        <input type="hidden" id="adminCurrency" value="UAH"> 
+                        
+                        <h4 style="margin-top: 20px;">Баланс</h4>
+                         <div class="custom-select-wrapper">
+                            <div class="custom-select">
+                                <div class="custom-select__trigger" id="adminCurrencyTrigger">
+                                    <span>Українська гривня (UAH)</span>
+                                    <div class="arrow"></div>
+                                </div>
+                                <div class="custom-options">
+                                    <span class="custom-option selected" data-value="UAH">Українська гривня (UAH)</span>
+                                    <span class="custom-option" data-value="WLO">Crypto Wollar (WLO)</span>
+                                </div>
+                            </div>
+                            <input type="hidden" id="adminCurrency" value="UAH"> 
+                        </div>
+                        <input type="number" id="adminAmount" placeholder="Сума коригування">
+                        <div class="btn-group">
+                            <button class="btn-primary btn-success" onclick="window.adminModifyMoney(1)">Нарахувати (+)</button>
+                            <button class="btn-primary btn-danger" onclick="window.adminModifyMoney(-1)">Списати (-)</button>
+                        </div>
                     </div>
 
-                    <div class="input-group-text">
-                        <span>@</span>
-                        <input type="text" id="targetUserCode" placeholder="Тег користувача" style="margin: 0;">
-                    </div>
-                    
-                    <input type="number" id="adminAmount" placeholder="Сума">
-                    
-                    <div class="btn-group">
-                        <button class="btn-primary btn-success" onclick="window.adminAddMoney()">Нарахувати (+)</button>
-                        <button class="btn-primary btn-danger" onclick="window.adminRemoveMoney()">Списати (-)</button>
+                    <div style="margin-top: 20px;">
+                         <h4>Історія користувача (останні 5)</h4>
+                         <div id="staffUserHistory" style="font-size: 0.8rem; color: var(--text-muted);">
+                             ...
+                         </div>
                     </div>
                 </div>
             </div>
@@ -242,7 +259,6 @@
     </div>
 
     <div id="notify" class="notification">Повідомлення</div>
-
     <script type="module" src="script.js"></script>
 </body>
 </html>

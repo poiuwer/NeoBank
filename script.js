@@ -1,14 +1,13 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-app.js";
 import { 
     getAuth, onAuthStateChanged, signOut, GoogleAuthProvider, signInWithPopup,
-    createUserWithEmailAndPassword, signInWithEmailAndPassword 
 } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-auth.js";
 import { 
     getFirestore, doc, getDoc, setDoc, updateDoc, increment, collection, query, where, 
     getDocs, runTransaction, onSnapshot, addDoc, orderBy, limit 
 } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore.js";
 
-// --- КОНФІГУРАЦІЯ (ВАШІ ДАНІ) ---
+// --- КОНФІГУРАЦІЯ ---
 const firebaseConfig = {
   apiKey: "AIzaSyDdV2pkAB3oOKZMTP_zPs-Bg4Bx0stAYXg",
   authDomain: "neobank-37e78.firebaseapp.com",
@@ -27,6 +26,7 @@ let currentUser = null;
 let currentUserData = null;
 let unsubscribeBalance = null;
 let unsubscribeHistory = null;
+let foundUserUid = null;
 
 // --- Ініціалізація UI ---
 document.addEventListener('DOMContentLoaded', () => {
@@ -70,8 +70,11 @@ const showNotify = (msg, type = 'info') => {
     setTimeout(() => n.classList.remove('show'), 3000);
 };
 
-// Модифікований перехід по сторінках з підвантаженням налаштувань
 window.showPage = (pageId) => {
+    if (currentUserData && currentUserData.isFrozen && pageId !== 'profile') {
+        return showNotify("Акаунт заблоковано. Зверніться до підтримки.", 'error');
+    }
+
     document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
     document.getElementById(pageId).classList.add('active');
 
@@ -94,71 +97,39 @@ window.copyTag = () => {
 
 // --- AUTH SYSTEM ---
 
-// Відправка листа через Firebase (Trigger Email Extension)
-async function sendWelcomeEmail(email, name) {
-    try {
-        await addDoc(collection(db, "mail"), {
-            to: email,
-            message: {
-                subject: "Вітаємо в NeoBank!",
-                html: `Привіт, ${name}! Твій рахунок успішно створено. Твій унікальний ідентифікатор ще не обрано, зроби це в додатку.`
-            }
-        });
-    } catch (e) { console.error("Email error:", e); }
-}
-
 window.loginWithGoogle = async () => {
     try { await signInWithPopup(auth, new GoogleAuthProvider()); } 
     catch (err) { showNotify(err.message, 'error'); }
 };
 
-window.registerEmail = async () => {
-    const email = document.getElementById('authEmail').value;
-    const pass = document.getElementById('authPass').value;
-    if(!email || !pass) return showNotify("Введіть пошту та пароль", 'error');
-    try { await createUserWithEmailAndPassword(auth, email, pass); } 
-    catch (err) { showNotify(err.message, 'error'); }
-};
-
-window.loginEmail = async () => {
-    const email = document.getElementById('authEmail').value;
-    const pass = document.getElementById('authPass').value;
-    if(!email || !pass) return showNotify("Заповніть поля", 'error');
-    try { await signInWithEmailAndPassword(auth, email, pass); } 
-    catch (err) { showNotify("Помилка входу", 'error'); }
-};
-
 window.logout = () => signOut(auth);
 
-// Головний слухач авторизації
 onAuthStateChanged(auth, async (user) => {
     currentUser = user;
-    
     if (user) {
         document.getElementById('auth-section').style.display = 'none';
         
         const userRef = doc(db, "users", user.uid);
         const snap = await getDoc(userRef);
         
-        // Новий користувач
         if (!snap.exists()) {
             await setDoc(userRef, { 
                 email: user.email, 
                 balance: 0, 
                 bank: 0, 
                 wlo: 0,
-                userCode: null // Код ще не встановлено
+                userCode: null,
+                role: 'user', 
+                isFrozen: false,
+                transferBlocked: false
             });
-            // Відправка листа (запише в колекцію mail)
-            sendWelcomeEmail(user.email, user.email.split('@')[0]);
-            
             showSetupScreen();
         } else {
             const data = snap.data();
-            // Якщо є аккаунт, але немає тегу - на налаштування
             if (!data.userCode) {
                 showSetupScreen();
             } else {
+                if(data.isFrozen) showNotify("Ваш акаунт заблоковано адміністрацією", "error");
                 initAppSession(user, data);
             }
         }
@@ -172,6 +143,7 @@ function resetApp() {
     document.getElementById('setup-section').style.display = 'none';
     document.getElementById('navMenu').style.display = 'none';
     document.getElementById('navUserName').style.display = 'none';
+    document.body.className = ''; 
     document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
     if (unsubscribeBalance) unsubscribeBalance();
     if (unsubscribeHistory) unsubscribeHistory();
@@ -189,15 +161,17 @@ function initAppSession(user, data) {
     document.getElementById('navUserName').innerText = data.name || "User";
     
     updateUI(data);
+    applyRoleTheme(data.role);
     window.showPage('home');
 
-    // Live update балансу
     const userRef = doc(db, "users", user.uid);
     if (unsubscribeBalance) unsubscribeBalance();
     unsubscribeBalance = onSnapshot(userRef, (docSnap) => {
         if (docSnap.exists()) {
             currentUserData = docSnap.data();
             updateUI(currentUserData);
+            applyRoleTheme(currentUserData.role);
+            if(currentUserData.isFrozen) showNotify("УВАГА: Акаунт заблоковано!", 'error');
         }
     });
     
@@ -209,14 +183,191 @@ function updateUI(data) {
     document.getElementById('homeUserName').innerText = displayName;
     document.getElementById('profileNameDisplay').innerText = displayName;
     document.getElementById('profileCodeDisplay').innerText = data.userCode || "---";
-    document.getElementById('mainBalance').innerText = (data.balance || 0).toLocaleString();
+    
+    const balance = (data.balance || 0).toLocaleString();
+    document.getElementById('mainBalance').innerText = balance;
+    document.getElementById('homeMainBalance').innerText = balance;
+    
     document.getElementById('bankBalance').innerText = (data.bank || 0).toLocaleString();
     document.getElementById('wloBalance').innerText = (data.wlo || 0).toLocaleString();
 }
 
-// --- SETUP & SETTINGS ---
+function applyRoleTheme(role) {
+    document.body.classList.remove('theme-admin', 'theme-moderator');
+    const badge = document.getElementById('roleBadgeDisplay');
+    const pBadge = document.getElementById('profileRoleBadge');
+    const staffBtn = document.getElementById('staffPanelButtonCard');
+    const avatar = document.getElementById('profileAvatarIcon');
 
-// Збереження унікального тегу
+    badge.style.display = 'none';
+    pBadge.style.display = 'none';
+    staffBtn.style.display = 'none';
+    avatar.innerHTML = '<i class="fas fa-user"></i>';
+
+    if (role === 'admin') {
+        document.body.classList.add('theme-admin');
+        badge.innerText = "ADMIN"; badge.style.display = 'block';
+        pBadge.innerText = "ADMIN"; pBadge.style.display = 'block';
+        staffBtn.style.display = 'block';
+        avatar.innerHTML = '<i class="fas fa-crown"></i>';
+    } else if (role === 'moderator') {
+        document.body.classList.add('theme-moderator');
+        badge.innerText = "MODERATOR"; badge.style.display = 'block';
+        pBadge.innerText = "MODERATOR"; pBadge.style.display = 'block';
+        staffBtn.style.display = 'block';
+        avatar.innerHTML = '<i class="fas fa-user-shield"></i>';
+    }
+}
+
+// --- АКТИВАЦІЯ РОЛІ ЧЕРЕЗ БД ---
+window.activateRole = async () => {
+    const inputKey = document.getElementById('accessKeyInput').value.trim();
+    if (!inputKey) {
+        showNotify("Введіть код", 'warning');
+        return;
+    }
+
+    try {
+        // 1. Шукаємо в колекції "settings" документ, де поле "code" співпадає з введеним
+        const q = query(collection(db, "settings"), where("code", "==", inputKey));
+        const querySnapshot = await getDocs(q);
+
+        if (!querySnapshot.empty) {
+            // Отримуємо дані знайденого документу
+            const docSnap = querySnapshot.docs[0];
+            const docData = docSnap.data();
+            
+            // 2. Перевіряємо, чи є поле 'role' у знайденому конфізі
+            const newRole = docData.role; 
+
+            if (newRole) {
+                // Оновлюємо роль користувача
+                await updateDoc(doc(db, "users", currentUser.uid), { role: newRole });
+                
+                showNotify(`Доступ отримано: ${newRole.toUpperCase()}`, 'success');
+                document.getElementById('accessKeyInput').value = "";
+                
+                // Опціонально: перезавантажити сторінку, щоб зміни вступили в силу
+                // location.reload(); 
+            } else {
+                console.error("У налаштуваннях (settings) знайдено код, але не вказано поле 'role'. ID документу:", docSnap.id);
+                showNotify("Код вірний, але роль не налаштована в БД", 'error');
+            }
+        } else {
+            showNotify("Невірний код доступу", 'error');
+        }
+    } catch (e) {
+        console.error("Помилка activateRole:", e);
+        showNotify("Помилка обробки запиту", 'error');
+    }
+};
+
+// --- ФУНКЦІЇ ПЕРСОНАЛУ ---
+
+window.staffSearchUser = async () => {
+    let code = document.getElementById('staffTargetCode').value.trim().toLowerCase();
+    if(code.startsWith('@')) code = code.substring(1);
+    
+    if(!code) return showNotify("Введіть тег", 'error');
+
+    const q = query(collection(db, "users"), where("userCode", "==", code));
+    const snap = await getDocs(q);
+
+    if(snap.empty) {
+        document.getElementById('staffUserInfo').style.display = 'none';
+        return showNotify("Користувача не знайдено", 'error');
+    }
+
+    const docSnap = snap.docs[0];
+    const data = docSnap.data();
+    foundUserUid = docSnap.id;
+
+    document.getElementById('staffUserInfo').style.display = 'block';
+    document.getElementById('staffTargetName').innerText = `${data.name} (@${data.userCode})`;
+    document.getElementById('staffTargetBalance').innerText = data.balance;
+    
+    let statusText = "Активний";
+    if (data.isFrozen) statusText = "ЗАБЛОКОВАНИЙ (Frozen)";
+    else if (data.transferBlocked) statusText = "Трансфери заборонено";
+    document.getElementById('staffTargetStatus').innerText = statusText;
+
+    if(currentUserData.role === 'admin') {
+        document.getElementById('adminControlsOnly').style.display = 'block';
+    } else {
+        document.getElementById('adminControlsOnly').style.display = 'none';
+    }
+
+    loadStaffHistory(foundUserUid);
+};
+
+async function loadStaffHistory(uid) {
+    const histDiv = document.getElementById('staffUserHistory');
+    histDiv.innerHTML = "Завантаження...";
+    
+    const q = query(collection(db, "transactions"), where("uid", "==", uid), orderBy("timestamp", "desc"), limit(5));
+    const snap = await getDocs(q);
+
+    if(snap.empty) {
+        histDiv.innerHTML = "Історія порожня";
+        return;
+    }
+
+    histDiv.innerHTML = "";
+    snap.forEach(d => {
+        const t = d.data();
+        const date = new Date(t.timestamp).toLocaleDateString();
+        histDiv.innerHTML += `<div style="padding: 5px 0; border-bottom: 1px solid rgba(255,255,255,0.1); font-size: 0.75rem;">
+            ${date} | ${t.amount} ${t.currency} | ${t.details}
+        </div>`;
+    });
+}
+
+window.adminToggleFreeze = async () => {
+    if(!foundUserUid || currentUserData.role !== 'admin') return;
+    try {
+        const ref = doc(db, "users", foundUserUid);
+        const snap = await getDoc(ref);
+        const currentFreeze = snap.data().isFrozen || false;
+        
+        await updateDoc(ref, { isFrozen: !currentFreeze });
+        showNotify(currentFreeze ? "Користувача розблоковано" : "Користувача ЗАБЛОКОВАНО", 'success');
+        window.staffSearchUser(); 
+    } catch(e) { showNotify(e.message, 'error'); }
+};
+
+window.adminToggleTransferBlock = async () => {
+    if(!foundUserUid || currentUserData.role !== 'admin') return;
+    try {
+        const ref = doc(db, "users", foundUserUid);
+        const snap = await getDoc(ref);
+        const currentBlock = snap.data().transferBlocked || false;
+        
+        await updateDoc(ref, { transferBlocked: !currentBlock });
+        showNotify(currentBlock ? "Перекази дозволено" : "Перекази заборонено", 'success');
+        window.staffSearchUser();
+    } catch(e) { showNotify(e.message, 'error'); }
+};
+
+window.adminModifyMoney = async (multiplier) => {
+    if(!foundUserUid || currentUserData.role !== 'admin') return;
+    const amount = Number(document.getElementById('adminAmount').value);
+    const currency = document.getElementById('adminCurrency').value;
+
+    if(amount <= 0) return showNotify("Сума має бути > 0", 'error');
+
+    const field = (currency === 'WLO') ? 'wlo' : 'balance';
+    const finalAmount = amount * multiplier;
+
+    try {
+        await updateDoc(doc(db, "users", foundUserUid), { [field]: increment(finalAmount) });
+        logTransaction(foundUserUid, 'admin_adj', Math.abs(finalAmount), currency, multiplier > 0 ? 'Admin (+)' : 'Admin (-)');
+        showNotify("Баланс змінено", 'success');
+        window.staffSearchUser();
+    } catch (e) { showNotify("Помилка", 'error'); }
+};
+
+// --- ФУНКЦІЇ КОРИСТУВАЧА ---
+
 window.saveUserTag = async () => {
     const name = document.getElementById('setupName').value.trim();
     const code = document.getElementById('setupCode').value.trim().toLowerCase();
@@ -224,7 +375,6 @@ window.saveUserTag = async () => {
     if (!name || code.length < 3) return showNotify("Мін. 3 символи", 'error');
     if (!/^[a-z0-9]+$/.test(code)) return showNotify("Тільки латиниця і цифри", 'error');
 
-    // Перевірка унікальності
     const q = query(collection(db, "users"), where("userCode", "==", code));
     const snap = await getDocs(q);
 
@@ -232,24 +382,21 @@ window.saveUserTag = async () => {
 
     try {
         await updateDoc(doc(db, "users", currentUser.uid), { name: name, userCode: code });
-        // Оновлюємо сесію
         const updatedSnap = await getDoc(doc(db, "users", currentUser.uid));
         initAppSession(currentUser, updatedSnap.data());
     } catch (e) { showNotify(e.message, 'error'); }
 };
 
-// Збереження налаштувань (зміна імені)
 window.saveSettings = async () => {
     const newName = document.getElementById('settingsName').value.trim();
     if (!newName) return showNotify("Ім'я не може бути пустим", 'error');
-    
     try {
         await updateDoc(doc(db, "users", currentUser.uid), { name: newName });
         showNotify("Профіль оновлено!", 'success');
     } catch (e) { showNotify("Помилка збереження", 'error'); }
 };
 
-// --- TRANSACTIONS ---
+// --- ТРАНЗАКЦІЇ ---
 
 async function logTransaction(uid, type, amount, currency, details) {
     await addDoc(collection(db, "transactions"), {
@@ -271,15 +418,43 @@ function startHistoryListener(uid) {
         snapshot.forEach((doc) => {
             const t = doc.data();
             const date = new Date(t.timestamp).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
-            let cl = "tr-neutral", pf = "";
-            if(['transfer_in', 'bank_withdraw'].includes(t.type)) { cl = "tr-positive"; pf = "+"; }
-            if(['transfer_out', 'bank_deposit'].includes(t.type)) { cl = "tr-negative"; pf = "-"; }
-            if(t.type === 'exchange') cl = "tr-exchange";
+            let cl = "tr-neutral", pf = "", displayText = "";
             
+            if(t.type === 'transfer_in') { 
+                cl = "tr-positive"; pf = "+"; 
+                displayText = t.details.includes('From:') 
+                    ? `Від: ${t.details.split('From:')[1]}` 
+                    : "Отримання коштів";
+            }
+            else if(t.type === 'transfer_out') { 
+                cl = "tr-negative"; pf = "-"; 
+                displayText = t.details.includes('To:') 
+                    ? `Кому: ${t.details.split('To:')[1]}` 
+                    : "Переказ коштів";
+            }
+            else if(t.type === 'bank_deposit') { 
+                cl = "tr-negative"; pf = "-"; 
+                displayText = "Депозит у сейф"; 
+            }
+            else if(t.type === 'bank_withdraw') { 
+                cl = "tr-positive"; pf = "+"; 
+                displayText = "Зняття з сейфу"; 
+            }
+            else if(t.type === 'exchange') { 
+                cl = "tr-exchange"; 
+                displayText = "Обмін валют (WLO)"; 
+            }
+            else if(t.type === 'admin_adj') { 
+                cl = "tr-neutral"; 
+                pf = (t.details.includes('+')) ? "+" : "-";
+                displayText = "Адміністративне коригування"; 
+            }
+            else { displayText = t.details; }
+
             listDiv.innerHTML += `
                 <div class="transaction-item ${cl}" style="display:flex; justify-content:space-between; padding:12px; border-bottom:1px solid rgba(255,255,255,0.05);">
                     <div>
-                        <div style="font-weight:600;">${t.details}</div>
+                        <div style="font-weight:600;">${displayText}</div>
                         <div style="font-size:0.8rem; opacity:0.6;">${date}</div>
                     </div>
                     <div style="font-weight:bold;">${pf}${t.amount} ${t.currency}</div>
@@ -288,7 +463,6 @@ function startHistoryListener(uid) {
     });
 }
 
-// Пошук ID по коду
 async function getUserIdByCode(code) {
     const q = query(collection(db, "users"), where("userCode", "==", code));
     const snap = await getDocs(q);
@@ -296,6 +470,10 @@ async function getUserIdByCode(code) {
 }
 
 window.sendMoneyToUser = async () => {
+    if (currentUserData.isFrozen || currentUserData.transferBlocked) {
+        return showNotify("Перекази для вас заблоковані", 'error');
+    }
+
     let targetCode = document.getElementById('transferToCode').value.trim().toLowerCase();
     if(targetCode.startsWith('@')) targetCode = targetCode.substring(1);
     const amount = Number(document.getElementById('transferToAmount').value);
@@ -325,101 +503,39 @@ window.sendMoneyToUser = async () => {
             logTransaction(targetUid, 'transfer_in', amount, label, `From: @${currentUserData.userCode}`);
         });
         showNotify("Надіслано!", 'success');
+        document.getElementById('transferToAmount').value = "";
     } catch (e) { showNotify(typeof e === 'string' ? e : e.message, 'error'); }
 };
 
 window.transferToBank = async () => {
-    const val = Number(document.getElementById('transferAmount').value);
+    if (currentUserData.isFrozen) return showNotify("Акаунт заморожено", 'error');
+    const val = Number(document.getElementById('transferBankAmount').value);
     if (val > 0 && currentUserData.balance >= val) {
         await updateDoc(doc(db, "users", currentUser.uid), { balance: increment(-val), bank: increment(val) });
-        logTransaction(currentUser.uid, 'bank_deposit', val, '₴', 'Депозит');
-        document.getElementById('transferAmount').value = "";
+        logTransaction(currentUser.uid, 'bank_deposit', val, '₴', 'Deposit');
+        document.getElementById('transferBankAmount').value = "";
+        showNotify("Успішно покладено", 'success');
     } else showNotify("Недостатньо коштів", 'error');
 };
 
 window.withdrawFromBank = async () => {
-    const val = Number(document.getElementById('transferAmount').value);
+    if (currentUserData.isFrozen) return showNotify("Акаунт заморожено", 'error');
+    const val = Number(document.getElementById('transferBankAmount').value);
     if (val > 0 && currentUserData.bank >= val) {
         await updateDoc(doc(db, "users", currentUser.uid), { balance: increment(val), bank: increment(-val) });
-        logTransaction(currentUser.uid, 'bank_withdraw', val, '₴', 'Зняття');
-        document.getElementById('transferAmount').value = "";
+        logTransaction(currentUser.uid, 'bank_withdraw', val, '₴', 'Withdraw');
+        document.getElementById('transferBankAmount').value = "";
+        showNotify("Успішно знято", 'success');
     } else showNotify("Недостатньо в сейфі", 'error');
 };
 
 window.exchangeToWlo = async () => {
+    if (currentUserData.isFrozen) return showNotify("Операції заборонено", 'error');
     const val = Number(document.getElementById('exchangeAmount').value);
     if (val > 0 && currentUserData.balance >= val) {
         await updateDoc(doc(db, "users", currentUser.uid), { balance: increment(-val), wlo: increment(val * 10) });
-        logTransaction(currentUser.uid, 'exchange', val, '₴', `Купівля ${val*10} WLO`);
+        logTransaction(currentUser.uid, 'exchange', val, '₴', `Exchange`);
         showNotify("Обмін успішний!", 'success');
         document.getElementById('exchangeAmount').value = "";
     } else showNotify("Помилка обміну", 'error');
 };
-
-// --- ADMIN FUNCTIONS ---
-
-// --- ADMIN FUNCTIONS ---
-
-window.verifyAdmin = async () => {
-    const enteredCode = document.getElementById('adminCodeInput').value;
-    
-    try {
-        // Звертаємось до вашого документа admin_config у колекції settings
-        const adminRef = doc(db, "settings", "admin_config");
-        const adminSnap = await getDoc(adminRef);
-
-        if (adminSnap.exists()) {
-            // Отримуємо значення поля 'code' з бази даних
-            const secretCode = adminSnap.data().code;
-
-            // Перевірка (враховуйте регістр: qWERadmin)
-            if (enteredCode === secretCode) {
-                document.getElementById('adminLogin').style.display = 'none';
-                document.getElementById('adminControls').style.display = 'block';
-                showNotify("Доступ дозволено", 'success');
-            } else {
-                showNotify("Невірний пароль", 'error');
-            }
-        } else {
-            showNotify("Помилка: Налаштування не знайдені в БД", 'error');
-        }
-    } catch (e) {
-        console.error("Admin verification error:", e);
-        showNotify("Помилка підключення до БД", 'error');
-    }
-};
-
-window.adminAddMoney = async () => {
-    processAdminTx(1);
-};
-
-window.adminRemoveMoney = async () => {
-    processAdminTx(-1);
-};
-
-async function processAdminTx(multiplier) {
-    let targetCode = document.getElementById('targetUserCode').value.trim().toLowerCase();
-    if(targetCode.startsWith('@')) targetCode = targetCode.substring(1);
-    const amount = Number(document.getElementById('adminAmount').value);
-    const currency = document.getElementById('adminCurrency').value;
-
-    if (!targetCode || isNaN(amount) || amount <= 0) return showNotify("Перевірте дані", 'error');
-
-    try {
-        const uid = await getUserIdByCode(targetCode);
-        if (!uid) return showNotify("Користувача не знайдено", 'error');
-
-        const field = (currency === 'WLO') ? 'wlo' : 'balance';
-        const finalAmount = amount * multiplier;
-
-        await updateDoc(doc(db, "users", uid), { [field]: increment(finalAmount) });
-        
-        // Логування в історію
-        logTransaction(uid, 'admin_adj', Math.abs(finalAmount), currency, multiplier > 0 ? 'Admin Deposit' : 'Admin Charge');
-        
-        showNotify("Баланс оновлено", 'success');
-        document.getElementById('adminAmount').value = "";
-    } catch (e) {
-        showNotify("Помилка транзакції", 'error');
-    }
-}
