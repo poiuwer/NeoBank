@@ -7,7 +7,6 @@ import {
     getDocs, runTransaction, onSnapshot, addDoc, orderBy, limit 
 } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore.js";
 
-// --- КОНФІГУРАЦІЯ ---
 const firebaseConfig = {
   apiKey: "AIzaSyDdV2pkAB3oOKZMTP_zPs-Bg4Bx0stAYXg",
   authDomain: "neobank-37e78.firebaseapp.com",
@@ -27,8 +26,9 @@ let currentUserData = null;
 let unsubscribeBalance = null;
 let unsubscribeHistory = null;
 let foundUserUid = null;
+let historyLimit = 10; 
+let staffHistoryLimit = 5;
 
-// --- Ініціалізація UI ---
 document.addEventListener('DOMContentLoaded', () => {
     setupCustomSelects();
 });
@@ -94,8 +94,6 @@ window.copyTag = () => {
         showNotify("Тег скопійовано!", "success");
     }
 };
-
-// --- AUTH SYSTEM ---
 
 window.loginWithGoogle = async () => {
     try { await signInWithPopup(auth, new GoogleAuthProvider()); } 
@@ -175,7 +173,8 @@ function initAppSession(user, data) {
         }
     });
     
-    startHistoryListener(user.uid);
+    historyLimit = 10;
+    startHistoryListener(user.uid, historyLimit);
 }
 
 function updateUI(data) {
@@ -219,7 +218,6 @@ function applyRoleTheme(role) {
     }
 }
 
-// --- АКТИВАЦІЯ РОЛІ ЧЕРЕЗ БД ---
 window.activateRole = async () => {
     const inputKey = document.getElementById('accessKeyInput').value.trim();
     if (!inputKey) {
@@ -228,29 +226,19 @@ window.activateRole = async () => {
     }
 
     try {
-        // 1. Шукаємо в колекції "settings" документ, де поле "code" співпадає з введеним
         const q = query(collection(db, "settings"), where("code", "==", inputKey));
         const querySnapshot = await getDocs(q);
 
         if (!querySnapshot.empty) {
-            // Отримуємо дані знайденого документу
             const docSnap = querySnapshot.docs[0];
             const docData = docSnap.data();
-            
-            // 2. Перевіряємо, чи є поле 'role' у знайденому конфізі
             const newRole = docData.role; 
 
             if (newRole) {
-                // Оновлюємо роль користувача
                 await updateDoc(doc(db, "users", currentUser.uid), { role: newRole });
-                
                 showNotify(`Доступ отримано: ${newRole.toUpperCase()}`, 'success');
                 document.getElementById('accessKeyInput').value = "";
-                
-                // Опціонально: перезавантажити сторінку, щоб зміни вступили в силу
-                // location.reload(); 
             } else {
-                console.error("У налаштуваннях (settings) знайдено код, але не вказано поле 'role'. ID документу:", docSnap.id);
                 showNotify("Код вірний, але роль не налаштована в БД", 'error');
             }
         } else {
@@ -261,8 +249,6 @@ window.activateRole = async () => {
         showNotify("Помилка обробки запиту", 'error');
     }
 };
-
-// --- ФУНКЦІЇ ПЕРСОНАЛУ ---
 
 window.staffSearchUser = async () => {
     let code = document.getElementById('staffTargetCode').value.trim().toLowerCase();
@@ -283,28 +269,47 @@ window.staffSearchUser = async () => {
     foundUserUid = docSnap.id;
 
     document.getElementById('staffUserInfo').style.display = 'block';
-    document.getElementById('staffTargetName').innerText = `${data.name} (@${data.userCode})`;
-    document.getElementById('staffTargetBalance').innerText = data.balance;
     
-    let statusText = "Активний";
-    if (data.isFrozen) statusText = "ЗАБЛОКОВАНИЙ (Frozen)";
-    else if (data.transferBlocked) statusText = "Трансфери заборонено";
-    document.getElementById('staffTargetStatus').innerText = statusText;
+    document.getElementById('staffFullDataName').innerText = data.name;
+    document.getElementById('staffFullDataTag').innerText = data.userCode;
+    document.getElementById('staffFullDataUid').innerText = foundUserUid;
+    document.getElementById('staffFullDataEmail').innerText = data.email;
+    document.getElementById('staffFullDataBal').innerText = data.balance;
+    document.getElementById('staffFullDataBank').innerText = data.bank;
+    document.getElementById('staffFullDataWlo').innerText = data.wlo;
+    document.getElementById('staffFullDataFrozen').innerText = data.isFrozen ? "ТАК" : "НІ";
+    document.getElementById('staffFullDataBlock').innerText = data.transferBlocked ? "ТАК" : "НІ";
+
+    const currWrap = document.getElementById('adminCurrencyWrapper');
+    const modDisp = document.getElementById('moderatorCurrencyDisplay');
+    const controls = document.getElementById('adminControlsOnly');
 
     if(currentUserData.role === 'admin') {
-        document.getElementById('adminControlsOnly').style.display = 'block';
+        controls.style.display = 'block';
+        currWrap.style.display = 'block';
+        modDisp.style.display = 'none';
     } else {
-        document.getElementById('adminControlsOnly').style.display = 'none';
+        controls.style.display = 'none';
+        currWrap.style.display = 'none';
+        modDisp.style.display = 'block';
     }
 
+    staffHistoryLimit = 5;
     loadStaffHistory(foundUserUid);
+};
+
+window.loadMoreStaffHistory = () => {
+    if(!foundUserUid) return;
+    staffHistoryLimit = 50;
+    loadStaffHistory(foundUserUid);
+    showNotify("Завантажено більше записів");
 };
 
 async function loadStaffHistory(uid) {
     const histDiv = document.getElementById('staffUserHistory');
     histDiv.innerHTML = "Завантаження...";
     
-    const q = query(collection(db, "transactions"), where("uid", "==", uid), orderBy("timestamp", "desc"), limit(5));
+    const q = query(collection(db, "transactions"), where("uid", "==", uid), orderBy("timestamp", "desc"), limit(staffHistoryLimit));
     const snap = await getDocs(q);
 
     if(snap.empty) {
@@ -316,8 +321,12 @@ async function loadStaffHistory(uid) {
     snap.forEach(d => {
         const t = d.data();
         const date = new Date(t.timestamp).toLocaleDateString();
+        let details = t.details;
+        if(details.includes('Admin correction')) details = 'Коригування адміністрацією';
+        else if(details.includes('Moderator correction')) details = 'Коригування модератором';
+        
         histDiv.innerHTML += `<div style="padding: 5px 0; border-bottom: 1px solid rgba(255,255,255,0.1); font-size: 0.75rem;">
-            ${date} | ${t.amount} ${t.currency} | ${t.details}
+            ${date} | ${t.amount} ${t.currency} | ${details}
         </div>`;
     });
 }
@@ -349,24 +358,32 @@ window.adminToggleTransferBlock = async () => {
 };
 
 window.adminModifyMoney = async (multiplier) => {
-    if(!foundUserUid || currentUserData.role !== 'admin') return;
+    if(!foundUserUid) return;
+    if(currentUserData.role !== 'admin' && currentUserData.role !== 'moderator') return;
+
     const amount = Number(document.getElementById('adminAmount').value);
-    const currency = document.getElementById('adminCurrency').value;
+    let currency = document.getElementById('adminCurrency').value;
 
     if(amount <= 0) return showNotify("Сума має бути > 0", 'error');
 
+    if(currentUserData.role === 'moderator') {
+        currency = 'WLO'; 
+        if(amount > 10000) return showNotify("Лімит для модератора: 10 000 WLO", 'error');
+    }
+
     const field = (currency === 'WLO') ? 'wlo' : 'balance';
     const finalAmount = amount * multiplier;
+    const authorRole = currentUserData.role === 'admin' ? 'Admin' : 'Moderator';
+    
+    let detailsText = `${authorRole} correction (${multiplier > 0 ? '+' : '-'})`;
 
     try {
         await updateDoc(doc(db, "users", foundUserUid), { [field]: increment(finalAmount) });
-        logTransaction(foundUserUid, 'admin_adj', Math.abs(finalAmount), currency, multiplier > 0 ? 'Admin (+)' : 'Admin (-)');
+        logTransaction(foundUserUid, 'admin_adj', Math.abs(finalAmount), currency, detailsText);
         showNotify("Баланс змінено", 'success');
         window.staffSearchUser();
     } catch (e) { showNotify("Помилка", 'error'); }
 };
-
-// --- ФУНКЦІЇ КОРИСТУВАЧА ---
 
 window.saveUserTag = async () => {
     const name = document.getElementById('setupName').value.trim();
@@ -396,17 +413,21 @@ window.saveSettings = async () => {
     } catch (e) { showNotify("Помилка збереження", 'error'); }
 };
 
-// --- ТРАНЗАКЦІЇ ---
-
 async function logTransaction(uid, type, amount, currency, details) {
     await addDoc(collection(db, "transactions"), {
         uid, type, amount, currency, details, timestamp: Date.now()
     });
 }
 
-function startHistoryListener(uid) {
+window.loadMoreHistory = () => {
+    historyLimit = 50; 
+    startHistoryListener(currentUser.uid, historyLimit);
+    showNotify("Завантажено більше транзакцій");
+};
+
+function startHistoryListener(uid, lim) {
     if (unsubscribeHistory) unsubscribeHistory();
-    const q = query(collection(db, "transactions"), where("uid", "==", uid), orderBy("timestamp", "desc"), limit(15));
+    const q = query(collection(db, "transactions"), where("uid", "==", uid), orderBy("timestamp", "desc"), limit(lim));
     
     unsubscribeHistory = onSnapshot(q, (snapshot) => {
         const listDiv = document.getElementById('transactionList');
@@ -418,46 +439,46 @@ function startHistoryListener(uid) {
         snapshot.forEach((doc) => {
             const t = doc.data();
             const date = new Date(t.timestamp).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
-            let cl = "tr-neutral", pf = "", displayText = "";
+            let pf = "", displayText = "";
             
             if(t.type === 'transfer_in') { 
-                cl = "tr-positive"; pf = "+"; 
+                pf = "+"; 
                 displayText = t.details.includes('From:') 
                     ? `Від: ${t.details.split('From:')[1]}` 
                     : "Отримання коштів";
             }
             else if(t.type === 'transfer_out') { 
-                cl = "tr-negative"; pf = "-"; 
+                pf = "-"; 
                 displayText = t.details.includes('To:') 
                     ? `Кому: ${t.details.split('To:')[1]}` 
                     : "Переказ коштів";
             }
             else if(t.type === 'bank_deposit') { 
-                cl = "tr-negative"; pf = "-"; 
+                pf = "-"; 
                 displayText = "Депозит у сейф"; 
             }
             else if(t.type === 'bank_withdraw') { 
-                cl = "tr-positive"; pf = "+"; 
+                pf = "+"; 
                 displayText = "Зняття з сейфу"; 
             }
             else if(t.type === 'exchange') { 
-                cl = "tr-exchange"; 
                 displayText = "Обмін валют (WLO)"; 
             }
             else if(t.type === 'admin_adj') { 
-                cl = "tr-neutral"; 
                 pf = (t.details.includes('+')) ? "+" : "-";
-                displayText = "Адміністративне коригування"; 
+                if(t.details.includes('Admin')) displayText = "Коригування адміністрацією";
+                else if(t.details.includes('Moderator')) displayText = "Коригування модератором";
+                else displayText = t.details;
             }
             else { displayText = t.details; }
 
             listDiv.innerHTML += `
-                <div class="transaction-item ${cl}" style="display:flex; justify-content:space-between; padding:12px; border-bottom:1px solid rgba(255,255,255,0.05);">
+                <div class="transaction-item" style="display:flex; justify-content:space-between; padding:15px; border-bottom:1px solid rgba(255,255,255,0.05);">
                     <div>
-                        <div style="font-weight:600;">${displayText}</div>
-                        <div style="font-size:0.8rem; opacity:0.6;">${date}</div>
+                        <div style="font-weight:600; color: #eee;">${displayText}</div>
+                        <div style="font-size:0.75rem; opacity:0.5;">${date}</div>
                     </div>
-                    <div style="font-weight:bold;">${pf}${t.amount} ${t.currency}</div>
+                    <div style="font-weight:bold; color: var(--accent);">${pf}${t.amount} ${t.currency}</div>
                 </div>`;
         });
     });
@@ -492,8 +513,17 @@ window.sendMoneyToUser = async () => {
         await runTransaction(db, async (t) => {
             const senderRef = doc(db, "users", currentUser.uid);
             const receiverRef = doc(db, "users", targetUid);
-            const senderSnap = await t.get(senderRef);
             
+            const senderSnap = await t.get(senderRef);
+            const receiverSnap = await t.get(receiverRef);
+            
+            if(!receiverSnap.exists()) throw "Отримувач не знайдений";
+
+            const receiverData = receiverSnap.data();
+            if(receiverData.isFrozen || receiverData.transferBlocked) {
+                throw "Отримувач не може приймати кошти (Блок)";
+            }
+
             if ((senderSnap.data()[field] || 0) < amount) throw `Недостатньо ${label}`;
 
             t.update(senderRef, { [field]: increment(-amount) });

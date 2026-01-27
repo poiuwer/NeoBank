@@ -146,6 +146,9 @@
                 <div id="transactionList" class="transaction-list">
                     <p style="text-align: center; padding: 20px;">Завантаження...</p>
                 </div>
+                <button class="btn-primary btn-secondary" onclick="window.loadMoreHistory()" style="margin-top: 15px; font-size: 0.9rem; padding: 10px;">
+                    <i class="fas fa-chevron-down"></i> Показати більше
+                </button>
             </div>
         </div>
 
@@ -215,18 +218,32 @@
                 <button class="btn-primary" onclick="window.staffSearchUser()">Знайти користувача</button>
 
                 <div id="staffUserInfo" style="display: none; margin-top: 20px; border-top: 1px solid var(--glass-border); padding-top: 20px;">
-                    <h3 id="staffTargetName">User Name</h3>
-                    <p style="font-size: 0.9rem; opacity: 0.7;">Balance: <span id="staffTargetBalance">0</span> ₴</p>
-                    <p style="font-size: 0.9rem; opacity: 0.7;">Status: <span id="staffTargetStatus">Active</span></p>
+                    <div style="background: rgba(0,0,0,0.2); padding: 15px; border-radius: 12px; margin-bottom: 20px; font-family: monospace; font-size: 0.85rem; color: var(--text-muted);">
+                        <p style="margin-bottom: 5px;"><strong style="color: #fff;">Name:</strong> <span id="staffFullDataName"></span></p>
+                        <p style="margin-bottom: 5px;"><strong style="color: #fff;">Tag:</strong> @<span id="staffFullDataTag"></span></p>
+                        <p style="margin-bottom: 5px;"><strong style="color: #fff;">UID:</strong> <span id="staffFullDataUid"></span></p>
+                        <p style="margin-bottom: 5px;"><strong style="color: #fff;">Email:</strong> <span id="staffFullDataEmail"></span></p>
+                        <hr style="border: 0; border-top: 1px solid rgba(255,255,255,0.1); margin: 8px 0;">
+                        <p style="margin-bottom: 5px;"><strong style="color: var(--accent);">Balance (UAH):</strong> <span id="staffFullDataBal"></span> ₴</p>
+                        <p style="margin-bottom: 5px;"><strong style="color: var(--accent);">Bank (Safe):</strong> <span id="staffFullDataBank"></span> ₴</p>
+                        <p style="margin-bottom: 5px;"><strong style="color: var(--crypto);">WLO:</strong> <span id="staffFullDataWlo"></span></p>
+                        <hr style="border: 0; border-top: 1px solid rgba(255,255,255,0.1); margin: 8px 0;">
+                        <p style="margin-bottom: 5px;">Frozen: <span id="staffFullDataFrozen"></span></p>
+                        <p>Transfer Block: <span id="staffFullDataBlock"></span></p>
+                    </div>
 
-                    <div id="adminControlsOnly" style="display: none; margin-top: 15px;">
+                    <div id="adminControlsOnly" style="display: none; margin-bottom: 20px;">
+                        <h4 style="margin-bottom: 10px;">Блокування (Admin Only)</h4>
                         <div class="btn-group">
                             <button class="btn-primary btn-danger" onclick="window.adminToggleFreeze()">БЛОКУВАННЯ (Freeze)</button>
                             <button class="btn-primary btn-secondary" onclick="window.adminToggleTransferBlock()">Блок переказів</button>
                         </div>
+                    </div>
+                    
+                    <div id="moneyControls">
+                        <h4 style="margin-top: 20px; margin-bottom: 10px;">Коригування балансу</h4>
                         
-                        <h4 style="margin-top: 20px;">Баланс</h4>
-                         <div class="custom-select-wrapper">
+                        <div id="adminCurrencyWrapper" class="custom-select-wrapper">
                             <div class="custom-select">
                                 <div class="custom-select__trigger" id="adminCurrencyTrigger">
                                     <span>Українська гривня (UAH)</span>
@@ -239,6 +256,11 @@
                             </div>
                             <input type="hidden" id="adminCurrency" value="UAH"> 
                         </div>
+                        
+                        <div id="moderatorCurrencyDisplay" style="display: none; padding: 10px; background: rgba(243, 156, 18, 0.2); border-radius: 8px; color: var(--crypto); font-weight: bold; margin-bottom: 15px;">
+                            Валюта: WLO
+                        </div>
+
                         <input type="number" id="adminAmount" placeholder="Сума коригування">
                         <div class="btn-group">
                             <button class="btn-primary btn-success" onclick="window.adminModifyMoney(1)">Нарахувати (+)</button>
@@ -247,10 +269,13 @@
                     </div>
 
                     <div style="margin-top: 20px;">
-                         <h4>Історія користувача (останні 5)</h4>
-                         <div id="staffUserHistory" style="font-size: 0.8rem; color: var(--text-muted);">
+                         <h4>Історія користувача</h4>
+                         <div id="staffUserHistory" style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 10px;">
                              ...
                          </div>
+                         <button class="btn-primary btn-secondary" onclick="window.loadMoreStaffHistory()" style="font-size: 0.8rem; padding: 8px;">
+                             Показати більше
+                         </button>
                     </div>
                 </div>
             </div>
